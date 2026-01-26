@@ -3,7 +3,7 @@ requires = ["uv_build >= 0.9.26, <0.10.0"]
 build-backend = "uv_build"
 
 [project]
-name = "gcp_utils"
+name = "gcp_utilities"
 version = "0.0.1"
 authors = [
   { name="Collins Mmasaba", email="mmasabacollins9@gmail.com" },
