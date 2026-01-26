@@ -1,9 +1,13 @@
+import atexit
+import logging as pylogging
 import os
 from enum import Enum
 from concurrent.futures import TimeoutError
+from threading import Lock
 
-from google.cloud import storage, bigquery
+from google.cloud import bigquery, logging, storage
 from google.cloud.exceptions import GoogleCloudError
+from google.cloud.logging.handlers import CloudLoggingHandler
 
 
 class WriteDisposition(Enum):
@@ -33,6 +37,13 @@ class GCP:
             bucket_name=os.getenv("GCP_BUCKET_NAME")
         )
         self.bigquery_client = bigquery.Client(project=os.getenv("GCP_PROJECT_ID"))
+        self.gcl_client = logging.Client.from_service_account_json(
+            os.getenv("GOOGLE_APPLICATION_CREDENTIALS"),
+            project=os.getenv("GCP_PROJECT_ID"),
+        )
+        self.logger = None
+        self._logger_lock = Lock()
+        atexit.register(self.cleanup_logger)
 
     def directory_exists(self, directory_name) -> bool:
         """
@@ -168,7 +179,41 @@ class GCP:
                 GoogleCloudError,
                 TimeoutError,
             ) as e:
-                # log error
-                return False
+                self.logger.error("[bq_load_table_from_file]: error: %s", e)
+                raise e
 
         return True
+
+    def get_logger(self) -> pylogging.Logger:
+        """Return a logger that writes to Google Cloud Logging."""
+        with self._logger_lock:
+            logger_name = os.getenv("GCP_LOGGER_NAME", "main")
+            logger = pylogging.getLogger(logger_name)
+
+            if not logger.handlers:
+                logger.addHandler(
+                    CloudLoggingHandler(self.gcl_client, name=logger_name)
+                )
+                logger.setLevel(pylogging.INFO)
+                logger.propagate = False
+
+            self.logger = logger
+
+            return self.logger
+
+    def cleanup_logger(self) -> None:
+        """Flush and close all logging handlers."""
+        if not self.logger:
+            return
+
+        handlers = self.logger.handlers[:]
+
+        for handler in handlers:
+            try:
+                handler.flush()
+                handler.close()
+                self.logger.removeHandler(handler)
+            except Exception as e:
+                print(f"Error cleaning up logging handler: {e}")
+
+        self.logger = None

@@ -1,0 +1,23 @@
+[build-system]
+requires = ["uv_build >= 0.9.26, <0.10.0"]
+build-backend = "uv_build"
+
+[project]
+name = "gcp_utils"
+version = "0.0.1"
+authors = [
+  { name="Collins Mmasaba", email="mmasabacollins9@gmail.com" },
+]
+description = "Simple utilities for GCP BigQuery, Cloud Storage and Cloud Logging"
+readme = "README.md"
+requires-python = ">=3.12"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+
+[project.urls]
+Homepage = "https://github.com/cmmasaba/gcp-tools"
+Issues = "https://github.com/cmmasaba/gcp-tools/issues"
