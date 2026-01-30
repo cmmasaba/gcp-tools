@@ -167,12 +167,13 @@ class GCP:
             create_disposition=c_disposition,
         )
 
-        with open(file_path, "rb", encoding="utf-8") as fp:
+        with open(file_path, "rb") as fp:
             try:
                 job = self.bigquery_client.load_table_from_file(
                     file_obj=fp, destination=table_id, job_config=job_config
                 )
                 job.result()
+                print("passed here")
             except (
                 ValueError,
                 TypeError,

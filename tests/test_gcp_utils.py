@@ -1,7 +1,7 @@
 from unittest import TestCase
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, mock_open
 
-from src.gcp_utilities.main import (
+from gcp_utilities.main import (
     GCP,
     SourceFormat,
     WriteDisposition,
@@ -10,7 +10,7 @@ from src.gcp_utilities.main import (
 
 from google.cloud import bigquery
 
-MOCK_ROOT = "src.gcp_utilities.main."
+MOCK_ROOT = "gcp_utilities.main."
 
 
 class GCPTestCase(TestCase):
@@ -33,12 +33,15 @@ class GCPTestCase(TestCase):
         self.gcs_patcher = patch(MOCK_ROOT + "storage.Client")
         self.bq_patcher = patch(MOCK_ROOT + "bigquery.Client")
         self.gcl_patcher = patch(MOCK_ROOT + "logging.Client")
+
         self.mock_gcs = self.gcs_patcher.start()
         self.mock_gcs_bucket = MagicMock()
         self.mock_gcs.return_value.bucket.return_value = self.mock_gcs_bucket
+
         self.mock_bq = self.bq_patcher.start()
         self.mock_bq_instance = MagicMock()
         self.mock_bq.return_value = self.mock_bq_instance
+
         self.mock_gcl = self.gcl_patcher.start()
         self.mock_gcl_instance = MagicMock()
         self.mock_gcl.return_value.from_service_account_json.return_value = (
@@ -58,7 +61,7 @@ class GCPTestCase(TestCase):
 
     def test_directory_exists(self) -> None:
         """Test directory_exists method."""
-        self.mock_gcs_bucket.list_blobs.return_value = 1
+        self.mock_gcs_bucket.list_blobs.return_value = (1,)
 
         self.gcp.directory_exists("test_dir")
 
@@ -69,7 +72,7 @@ class GCPTestCase(TestCase):
     def test_gcs_add_directory(self) -> None:
         """Test gcs_add_directory method."""
         mock_blob = MagicMock()
-        self.mock_gcs_bucket.list_blobs.return_value = 0
+        self.mock_gcs_bucket.list_blobs.return_value = ()
         self.mock_gcs_bucket.blob.return_value = mock_blob
 
         self.gcp.gcs_add_directory("test_dir")
@@ -81,8 +84,9 @@ class GCPTestCase(TestCase):
 
     def test_gcs_add_file(self) -> None:
         """Test gcs_add_file method."""
-        self.mock_gcs_bucket.list_blobs.return_value = 1
+        self.mock_gcs_bucket.list_blobs.return_value = (1,)
         mock_blob = MagicMock()
+        self.mock_gcs_bucket.blob.return_value = mock_blob
 
         self.gcp.gcs_add_file("/path/to/file.txt", "test_dir/")
 
@@ -92,33 +96,42 @@ class GCPTestCase(TestCase):
     def test_bq_load_table_from_file(self) -> None:
         """Test bq_load_table_from_file method."""
         mock_job = MagicMock()
-        self.mock_bq.load_table_from_file.return_value = mock_job
+        self.mock_bq_instance.load_table_from_file.return_value = mock_job
+        mock_content = b"some content"
 
-        self.gcp.bq_load_table_from_file(
-            "test_table",
-            "/path/to/file.json",
-            SourceFormat.JSON,
-            WriteDisposition.EMPTY,
-            CreateDisposition.CREATE,
-            [bigquery.SchemaField("col", "STRING", "NULLABLE")],
-        )
+        with patch("builtins.open", mock_open(read_data=mock_content)) as mock_file:
 
-        mock_job.result.assert_called_once()
+            self.gcp.bq_load_table_from_file(
+                "test_table",
+                "/path/to/creds.json",
+                SourceFormat.JSON,
+                WriteDisposition.EMPTY,
+                CreateDisposition.CREATE,
+                [bigquery.SchemaField("col", "STRING", "NULLABLE")],
+            )
 
+            mock_file.assert_called_once_with("/path/to/creds.json", "rb")
+            mock_job.result.assert_called_once()
+
+    @patch(MOCK_ROOT + "CloudLoggingHandler")
     @patch(MOCK_ROOT + "pylogging")
-    def test_logger(self, mock_pylogger) -> None:
+    def test_logger(self, mock_pylogger, mock_cloud_handler) -> None:
         """Test get_logger and cleanup_logger methods."""
         mock_logger = MagicMock()
-        mock_handlers = MagicMock()
+        mock_logger.handlers = []
         mock_pylogger.getLogger.return_value = mock_logger
+        mock_pylogger.INFO = 20
 
         self.gcp.get_logger()
 
-        mock_logger.addHandlers.assert_called_once()
-        mock_logger.setLevel.assert_called_once()
+        mock_logger.addHandler.assert_called_once()
+        mock_logger.setLevel.assert_called_once_with(20)
 
-        mock_logger.handlers.return_value = mock_handlers
+        mock_handler = MagicMock()
+        mock_logger.handlers = [mock_handler]
 
         self.gcp.cleanup_logger()
-        mock_handlers.flush.assert_called_once()
-        mock_handlers.close.assert_called_once()
+
+        mock_handler.flush.assert_called_once()
+        mock_handler.close.assert_called_once()
+        mock_logger.removeHandler.assert_called_once_with(mock_handler)
