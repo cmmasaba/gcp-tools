@@ -1,6 +1,8 @@
 from unittest import TestCase
 from unittest.mock import MagicMock, patch, mock_open
 
+import pytest
+
 from gcp_utilities.main import (
     GCP,
     SourceFormat,
@@ -93,7 +95,15 @@ class GCPTestCase(TestCase):
         self.mock_gcs_bucket.blob.assert_called_once_with("test_dir/file.txt")
         mock_blob.upload_from_filename.assert_called_once_with("/path/to/file.txt")
 
-    def test_bq_load_table_from_file(self) -> None:
+        self.mock_gcs_bucket.reset_mock()
+        mock_blob.reset_mock()
+
+        self.gcp.gcs_add_file("/path/to/file.txt", "test_dir")
+
+        self.mock_gcs_bucket.blob.assert_called_once_with("test_dir/file.txt")
+        mock_blob.upload_from_filename.assert_called_once_with("/path/to/file.txt")
+
+    def test_bq_load_table_from_file_json(self) -> None:
         """Test bq_load_table_from_file method."""
         mock_job = MagicMock()
         self.mock_bq_instance.load_table_from_file.return_value = mock_job
@@ -106,12 +116,135 @@ class GCPTestCase(TestCase):
                 "/path/to/creds.json",
                 SourceFormat.JSON,
                 WriteDisposition.EMPTY,
-                CreateDisposition.CREATE,
+                CreateDisposition.DO_NOT_CREATE,
                 [bigquery.SchemaField("col", "STRING", "NULLABLE")],
             )
 
             mock_file.assert_called_once_with("/path/to/creds.json", "rb")
             mock_job.result.assert_called_once()
+
+    def test_bq_load_table_from_file_avro(self) -> None:
+        """Test bq_load_table_from_file method."""
+        mock_job = MagicMock()
+        self.mock_bq_instance.load_table_from_file.return_value = mock_job
+        mock_content = b"some content"
+
+        with patch("builtins.open", mock_open(read_data=mock_content)) as mock_file:
+
+            self.gcp.bq_load_table_from_file(
+                "test_table",
+                "/path/to/creds.avro",
+                SourceFormat.AVRO,
+                WriteDisposition.TRUNCATE,
+                CreateDisposition.CREATE,
+                [bigquery.SchemaField("col", "STRING", "NULLABLE")],
+            )
+
+            mock_file.assert_called_once_with("/path/to/creds.avro", "rb")
+            mock_job.result.assert_called_once()
+
+    def test_bq_load_table_from_file_csv(self) -> None:
+        """Test bq_load_table_from_file method."""
+        mock_job = MagicMock()
+        self.mock_bq_instance.load_table_from_file.return_value = mock_job
+        mock_content = b"some content"
+
+        with patch("builtins.open", mock_open(read_data=mock_content)) as mock_file:
+
+            self.gcp.bq_load_table_from_file(
+                "test_table",
+                "/path/to/creds.csv",
+                SourceFormat.CSV,
+                WriteDisposition.APPEND,
+                CreateDisposition.CREATE,
+                [bigquery.SchemaField("col", "STRING", "NULLABLE")],
+            )
+
+            mock_file.assert_called_once_with("/path/to/creds.csv", "rb")
+            mock_job.result.assert_called_once()
+
+    def test_bq_load_table_from_file_orc(self) -> None:
+        """Test bq_load_table_from_file method."""
+        mock_job = MagicMock()
+        self.mock_bq_instance.load_table_from_file.return_value = mock_job
+        mock_content = b"some content"
+
+        with patch("builtins.open", mock_open(read_data=mock_content)) as mock_file:
+
+            self.gcp.bq_load_table_from_file(
+                "test_table",
+                "/path/to/creds.orc",
+                SourceFormat.ORC,
+                WriteDisposition.EMPTY,
+                CreateDisposition.CREATE,
+                [bigquery.SchemaField("col", "STRING", "NULLABLE")],
+            )
+
+            mock_file.assert_called_once_with("/path/to/creds.orc", "rb")
+            mock_job.result.assert_called_once()
+
+    def test_bq_load_table_from_file_parquet(self) -> None:
+        """Test bq_load_table_from_file method."""
+        mock_job = MagicMock()
+        self.mock_bq_instance.load_table_from_file.return_value = mock_job
+        mock_content = b"some content"
+
+        with patch("builtins.open", mock_open(read_data=mock_content)) as mock_file:
+
+            self.gcp.bq_load_table_from_file(
+                "test_table",
+                "/path/to/creds.parquet",
+                SourceFormat.PARQUET,
+                WriteDisposition.EMPTY,
+                CreateDisposition.CREATE,
+                [bigquery.SchemaField("col", "STRING", "NULLABLE")],
+            )
+
+            mock_file.assert_called_once_with("/path/to/creds.parquet", "rb")
+            mock_job.result.assert_called_once()
+
+    def test_bq_load_table_from_file_db_backup(self) -> None:
+        """Test bq_load_table_from_file method."""
+        mock_job = MagicMock()
+        self.mock_bq_instance.load_table_from_file.return_value = mock_job
+        mock_content = b"some content"
+
+        with patch("builtins.open", mock_open(read_data=mock_content)) as mock_file:
+
+            self.gcp.bq_load_table_from_file(
+                "test_table",
+                "/path/to/creds.bak",
+                SourceFormat.DATASTORE_BACKUP,
+                WriteDisposition.EMPTY,
+                CreateDisposition.CREATE,
+                [bigquery.SchemaField("col", "STRING", "NULLABLE")],
+            )
+
+            mock_file.assert_called_once_with("/path/to/creds.bak", "rb")
+            mock_job.result.assert_called_once()
+
+    def test_bq_load_table_from_file_db_backup_fail(self) -> None:
+        """Test bq_load_table_from_file method."""
+        mock_job = MagicMock()
+        mock_logger = MagicMock()
+        self.gcp.logger = mock_logger
+
+        self.mock_bq_instance.load_table_from_file.return_value = mock_job
+        mock_content = b"some content"
+        mock_job.result.side_effect = ValueError("Invalid value")
+
+        with patch("builtins.open", mock_open(read_data=mock_content)):
+            with pytest.raises(ValueError, match="Invalid value"):
+                self.gcp.bq_load_table_from_file(
+                    "test_table",
+                    "/path/to/creds.bak",
+                    SourceFormat.DATASTORE_BACKUP,
+                    WriteDisposition.EMPTY,
+                    CreateDisposition.CREATE,
+                    [bigquery.SchemaField("col", "STRING", "NULLABLE")],
+                )
+
+            self.gcp.logger.error.assert_called_once()
 
     @patch(MOCK_ROOT + "CloudLoggingHandler")
     @patch(MOCK_ROOT + "pylogging")
