@@ -32,3 +32,17 @@ upload_pypi:
 	@echo "==> Uploading distribution archives..."
 	python3 -m pip install --upgrade twine
 	python3 -m twine upload dist/*
+
+## Run tests
+.PHONY: test
+test:
+	@echo "==> Running tests..."
+	pytest tests/
+
+## Clean directory
+.PHONY: cleanup
+cleanup:
+	@echo "==> Cleaning root directory..."
+	find ./src -type d -name "__pycache__" -prune -exec rm -rf {} +
+	rm -rf .pytest_cache/ tests/__pycache__/
+	rm .coverage
