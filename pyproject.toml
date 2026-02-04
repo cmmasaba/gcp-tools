@@ -16,7 +16,7 @@ classifiers = [
     "Operating System :: OS Independent",
 	"Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "Topic :: Software Development :: GCP Tools"
+    "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 license = "MIT"
 license-files = ["LICEN[CS]E*"]
