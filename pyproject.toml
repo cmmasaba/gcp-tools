@@ -19,8 +19,8 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 dependencies = [
-    "google-cloud-storage==3.8.0"
-    "google-cloud-bigquery==3.27.0"
+    "google-cloud-storage==3.8.0",
+    "google-cloud-bigquery==3.27.0",
     "google-cloud-logging>=3.0.0,<4.0.0"
 ]
 license = "MIT"
