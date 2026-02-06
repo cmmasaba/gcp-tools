@@ -1,5 +1,5 @@
-APP_NAME := gcp-tools
-VERSION := 1.0.0
+APP_NAME := gcp-utilities
+VERSION := 0.0.2
 
 ## Update pip
 .PHONY: update_pip
