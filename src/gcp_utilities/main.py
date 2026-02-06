@@ -173,7 +173,6 @@ class GCP:
                     file_obj=fp, destination=table_id, job_config=job_config
                 )
                 job.result()
-                print("passed here")
             except (
                 ValueError,
                 TypeError,

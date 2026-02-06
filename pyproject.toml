@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gcp_utilities"
-version = "0.0.2"
+version = "0.0.3"
 authors = [
   { name="Collins Mmasaba", email="mmasabacollins9@gmail.com" },
 ]
@@ -17,6 +17,11 @@ classifiers = [
 	"Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Libraries :: Python Modules"
+]
+dependencies = [
+    "google-cloud-storage==3.8.0"
+    "google-cloud-bigquery==3.27.0"
+    "google-cloud-logging>=3.0.0,<4.0.0"
 ]
 license = "MIT"
 license-files = ["LICEN[CS]E*"]
@@ -38,6 +43,7 @@ exclude = [
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 addopts = "--cov=gcp_utilities --cov-report=term-missing --durations=25"
+testpaths = ["tests"]
 
 [tool.coverage.run]
 branch = true

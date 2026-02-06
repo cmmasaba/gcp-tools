@@ -1,4 +1,12 @@
-# Publishing Python Packages to Pip
+# GCP Utilities
+
+Simple wrapper for common GCP operations like:
+
+- creating a Google CLoud Storage directory
+- checking if a Google Cloud Storage directory exists
+- adding a file to Google Cloud Storage
+- loading tables from files to Google BigQuery
+- logging messages to Google Cloud Logging
 
 ## Env Vars
 
@@ -13,23 +21,3 @@ export GCP_LOGGER_NAME=""
 export GOOGLE_APPLICATION_CREDENTIALS=""
 
 ```
-
-### Challenges
-
-```python
-
-python3 -m build
-
-```
-
-No module named build
-
-The `build` module from PEP 517 is not part of the standard library for Python. This error means it is not installed and should be installed using the following command:
-
-```python
-
-python3 -m pip install build
-
-```
-
-Ensure `__init__.py` is in the folder listed as project name
